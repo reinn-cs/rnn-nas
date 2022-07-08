@@ -89,6 +89,9 @@ class EnvironmentConfig:
             "include_lstm": True,
             "include_gru": True,
 
+            "character_level": True,
+            "dataset": "cfl",
+
             "ptb_training_epochs": 30,
             "ptb_ppl_upper_threshold": 500000,
             "ptb_model_nlayers": 1,
