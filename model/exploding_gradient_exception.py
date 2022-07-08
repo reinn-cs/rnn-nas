@@ -1,0 +1,2 @@
+class ExplodingGradientException(Exception):
+    pass
