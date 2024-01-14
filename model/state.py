@@ -190,12 +190,9 @@ class State(nn.Module):
 
             return torch.stack(outputs['output'], dim=0), (outputs['h_next'], outputs['c_next'])
         elif sentiment:
-            if model_states is None:
-                h_t = torch.zeros(input.size(1), self.hidden_layer_size).to(DeviceController.get_device())
-                c_t = torch.zeros(input.size(1), self.hidden_layer_size).to(DeviceController.get_device())
-            else:
-                (h_t, c_t) = model_states
+            (h_t, c_t) = model_states
 
+            self.blocks['x'].output = input
             self.blocks['h'].output = h_t
             self.blocks['c'].output = c_t
             outputs = {
@@ -203,20 +200,18 @@ class State(nn.Module):
             }
 
             ActivationController.reset_input()
-            for input_t in torch.unbind(input, dim=0):
-                self.block_outputs = {}
-                self.blocks['x'].output = input_t
+            self.block_outputs = {}
 
-                for out_key in self.output_blocks:
-                    outputs[out_key] = self.blocks[out_key].get_output(self)
+            for out_key in self.output_blocks:
+                outputs[out_key] = self.blocks[out_key].get_output(self)
 
-                self.blocks['h'].output = outputs['h_next']
-                self.blocks['c'].output = outputs['c_next']
+            self.blocks['h'].output = outputs['h_next']
+            self.blocks['c'].output = outputs['c_next']
 
-                outputs['output'].append(outputs['h_next'].clone())
-                ActivationController.update_input()
+            outputs['output'].append(outputs['h_next'].clone())
+            ActivationController.update_input()
 
-            return torch.stack(outputs['output'], dim=0), (outputs['h_next'], outputs['c_next'])
+            return outputs['h_next'], outputs['c_next']
         else:
             raise Exception('Unknown state.')
 

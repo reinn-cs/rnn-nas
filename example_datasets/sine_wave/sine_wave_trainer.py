@@ -50,8 +50,8 @@ class SineWaveTrainer:
         criterion = self.get_loss_function()
 
         # set random seed to 0
-        np.random.seed(0)
-        torch.manual_seed(0)
+        # np.random.seed(0)
+        # torch.manual_seed(0)
         # load data and make training set
         max_phases = 100
         data = generate_data(phases=max_phases, noise_range_p=noise_range)
@@ -186,8 +186,8 @@ class SineWaveTrainer:
 
     def get_model_output(self, model, noise_range=0.0):
         # set random seed to 0
-        np.random.seed(0)
-        torch.manual_seed(0)
+        # np.random.seed(0)
+        # torch.manual_seed(0)
         criterion = self.get_loss_function()
 
         data = generate_data(phases=self.config['sine_model_test_phases'], noise_range_p=noise_range)

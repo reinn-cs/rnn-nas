@@ -4,6 +4,7 @@ import json
 import os
 import random
 import time
+import zipfile
 
 import jsonpickle
 import numpy as np
@@ -15,6 +16,9 @@ from example_datasets.cfl.language_model_objectives import LanguageModelObjectiv
 from example_datasets.cfl.language_model_trainer import Language_Model_Trainer
 from example_datasets.ptb.ptb_model_objectives import PtbModelObjectives
 from example_datasets.ptb.ptb_trainer import PtbTrainer
+from example_datasets.sentiment.sentiment_data_loader import SentimentDataLoader
+from example_datasets.sentiment.sentiment_model_wrapper import SentimentModel
+from example_datasets.sentiment.sentiment_trainer import SentimentTrainer
 from model.architecture import Architecture
 from model.architecture_objectives import ArchitectureObjectives
 from model.circular_reference_exception import CircularReferenceException
@@ -269,7 +273,7 @@ class SearchDelegator:
         LOG.info(f'Search took {diff} minutes.')
 
     def non_dominated_sorting(self, architecture_keys: list):
-        with NonDominatedSorting(self.population_fitness, self.config('objectives')) as sorter:
+        with NonDominatedSorting(self.population_fitness, self.config('objectives'), EnvironmentConfig.get_config('dataset')=='sentiment') as sorter:
             self.fronts = sorter.sort(architecture_keys)
 
     def perform_selection_by_rank(self, population_size, options) -> list:
@@ -390,7 +394,8 @@ class SearchDelegator:
             value = getattr(self.population_fitness[key], objective)
             values.append((value, key))
 
-        values = sorted(values, key=lambda x: (x[0]))
+        is_sentiment = objective == 'ptb_ppl' and EnvironmentConfig.get_config('dataset') == 'sentiment'
+        values = sorted(values, key=lambda x: (x[0]), reverse=is_sentiment)
         idx_1 = list(values[0])[1]
         idx_N = list(values[-1])[1]
 
@@ -494,8 +499,11 @@ class SearchDelegator:
 
         if EnvironmentConfig.get_config('dataset') == 'ptb':
             test_loss, perplexity, performance = self.get_ptb_perplexity(cell_key)
+        elif EnvironmentConfig.get_config('dataset') == 'sentiment':
+            test_loss, perplexity, performance = self.get_sentiment_fitness(cell_key)
         else:
             test_loss, perplexity, performance = self.get_cfl_fitness(cell_key)
+
         self.population_fitness[cell_key].ptb_loss = test_loss
         self.population_fitness[cell_key].ptb_ppl = perplexity
         self.population_fitness[cell_key].ptb_performance = performance
@@ -504,7 +512,7 @@ class SearchDelegator:
             self.population_fitness[cell_key].training_time = sum(performance['training_time']) / len(
                 performance['training_time'])
 
-        is_new_best = Persistence.is_new_best(self.population_fitness[cell_key])
+        is_new_best = Persistence.is_new_best(self.population_fitness[cell_key], EnvironmentConfig.get_config('dataset'))
         if len(is_new_best) != 0:
             LOG.info(f'{cell_key} has achieved a new best for one of the objectives {is_new_best}.')
             SlackPost.post_success('New best',
@@ -629,6 +637,38 @@ class SearchDelegator:
             return 1.0e+10, 1.0e+10, {}
 
         return loss, mean_absolute_error, performance
+
+    def get_sentiment_fitness(self, cell_key):
+
+        print('Start sentiment')
+        data_loader = SentimentDataLoader()
+        no_layers = 1
+        vocab_size = len(data_loader.vocab) + 1  # extra 1 for padding
+        embedding_dim = 64
+        output_dim = 1
+        hidden_dim = embedding_dim
+
+        architecture = self.architectures[cell_key]
+        builder = BlockStateBuilder(cell_key)
+        model = SentimentModel(architecture, cell_key, builder, no_layers, vocab_size, hidden_dim, embedding_dim, output_dim, lstm_model=False, basic_rnn=False)
+
+        trainer = SentimentTrainer()
+        print('Start sentiment training')
+        accuracy, performance = trainer.train(model, data_loader)
+
+        total_params = 0
+        for name, parameter in model.named_parameters():
+            if not parameter.requires_grad: continue
+            param = parameter.numel()
+            total_params += param
+
+        NASController.set_architecture_performance(cell_key, PtbModelObjectives.PTB_MODEL_LOSS, accuracy)
+        NASController.set_architecture_performance(cell_key, PtbModelObjectives.PTB_MODEL_PPL, accuracy)
+        NASController.set_architecture_performance(cell_key, ArchitectureObjectives.NUMBER_OF_BLOCKS, len(self.architectures[cell_key].blocks.keys()))
+        NASController.set_architecture_performance(cell_key, ArchitectureObjectives.NUMBER_OF_PARAMETERS, total_params)
+
+        print('Done sentiment training')
+        return accuracy, accuracy, performance
 
 
     def get_cfl_fitness(self, cell_key):
@@ -864,6 +904,34 @@ class SearchDelegator:
                 f.close()
                 LOG.debug(f'Saved architecture {_arch}')
         return snapshot_path
+
+    def zip_files(self):
+        if os.path.exists('/content/drive/My Drive/msc_run'):
+            folders = []
+            if os.path.exists('./output/'):
+                folders.append('./output/')
+
+            if os.path.exists('./restore/'):
+                folders.append('./restore')
+
+            if os.path.exists('./performance'):
+                folders.append('./performance')
+
+            if len(folders) > 0:
+                self.zipit(folders, '/content/drive/My Drive/msc_run/ptb_iter.zip')
+
+    def zipit(self, folders, zip_filename):
+        zip_file = zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED)
+
+        for folder in folders:
+            for dirpath, dirnames, filenames in os.walk(folder):
+                if not 'models' in dirpath and not 'models' in dirnames:
+                    for filename in filenames:
+                        zip_file.write(
+                            os.path.join(dirpath, filename),
+                            os.path.relpath(os.path.join(dirpath, filename), os.path.join(folders[0], '../..')))
+
+        zip_file.close()
 
     def get_restore_versions(self, files=None, generation_specific=None):
         """

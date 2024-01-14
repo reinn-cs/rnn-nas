@@ -6,7 +6,7 @@ def generate_data(phases=3, noise_range_p=0.0, save_file=False):
     """
         Generates a SINE wave
     """
-    np.random.seed(2)
+    # np.random.seed(2)
 
     T = 20
     L = 1000

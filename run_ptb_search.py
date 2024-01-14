@@ -10,6 +10,10 @@ from ops.nas_controller import NASController
 from ops.search_delegator import SearchDelegator
 from persistence.persistence import Persistence
 
+SEED = 111111
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
 
 def make_dir(_directory):
     if not os.path.exists(_directory):

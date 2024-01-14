@@ -143,9 +143,9 @@ class Persistence:
     def persist_model_performance_objectives(model_identifier, model_hash):
         now = datetime.datetime.now()
         entry = {
-            'time': now,
-            'model_id': model_identifier,
-            'model_hash': model_hash
+            'time': [now],
+            'model_id': [model_identifier],
+            'model_hash': [model_hash]
         }
 
         persistence_keys = set()
@@ -158,7 +158,7 @@ class Persistence:
             value = NASController.get_architecture_performance_value(model_identifier, _key)
             if type(value) is Tensor:
                 value = value.item()
-            entry[_key] = value
+            entry[_key] = [value]
 
         Persistence.get_instance().persist_model_performance(entry)
 
@@ -229,7 +229,7 @@ class Persistence:
         else:
             df = pd.DataFrame(columns=self.default_columns)
 
-        if len(list(df.loc[df['model_id'] == entry['model_id']]['model_id'])) > 0:
+        if len(list(df.loc[df['model_id'] == entry['model_id'][0]]['model_id'])) > 0:
 
             persistence_keys = set()
             persistence_keys.add(ArchitectureObjectives.NUMBER_OF_BLOCKS.value)
@@ -249,7 +249,9 @@ class Persistence:
                     found = True
 
         else:
-            df = df.append(entry, ignore_index=True)
+            # df = df.concat(entry, ignore_index=True)
+            entry_df = pd.DataFrame.from_dict(entry)
+            df = pd.concat([df, entry_df], ignore_index=True)
 
         df = df.sort_values(by=self.specific_columns, ascending=True)
         df.to_csv(CSV_PATH, index=False)
@@ -280,14 +282,23 @@ class Persistence:
         return state.find_one()
 
     @staticmethod
-    def is_new_best(model_fitness):
+    def is_new_best(model_fitness, dataset):
         result = []
         for key in Persistence.get_instance().specific_columns:
             value = getattr(model_fitness, key)
-            if key not in Persistence.get_instance().best_achieved.keys() or value < \
-                    Persistence.get_instance().best_achieved[key]:
+            if key not in Persistence.get_instance().best_achieved.keys():
                 Persistence.get_instance().best_achieved[key] = value
                 result.append(key)
+            else:
+                if key == 'ptb_ppl':
+                    if (dataset != 'sentiment' and value < Persistence.get_instance().best_achieved[key]) or \
+                            (dataset == 'sentiment' and value > Persistence.get_instance().best_achieved[key]):
+                        Persistence.get_instance().best_achieved[key] = value
+                        result.append(key)
+                elif value < Persistence.get_instance().best_achieved[key]:
+                    Persistence.get_instance().best_achieved[key] = value
+                    result.append(key)
+
         return result
 
     @staticmethod

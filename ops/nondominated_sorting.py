@@ -3,9 +3,10 @@ class NonDominatedSorting:
     Implementation of the nondominated sorting used by the NAS search delegator.
     """
 
-    def __init__(self, population_fitness, evaluating_objectives):
+    def __init__(self, population_fitness, evaluating_objectives, is_sentiment):
         self.population_fitness = population_fitness
         self.evaluating_objectives = evaluating_objectives
+        self.is_sentiment = is_sentiment
 
     def __enter__(self):
         return self
@@ -69,7 +70,7 @@ class NonDominatedSorting:
         p_score = 0
         q_score = 0
 
-        def test_domination(p_val, q_val):
+        def test_domination(p_val, q_val, is_sentiment):
             """
             return 1, 0 if p_val dominates q_val
             return 0, 1 if q_val dominates p_val
@@ -86,14 +87,22 @@ class NonDominatedSorting:
                 return 0, 1
 
             if p_val < q_val:
+                if is_sentiment:
+                    return 0, 1
+
                 return 1, 0
             elif q_val < p_val:
+                if is_sentiment:
+                    return 1, 0
+
                 return 0, 1
             else:
                 return 0, 0
 
         for _attr in self.evaluating_objectives:
-            val_p, val_q = test_domination(getattr(p_fitness, _attr), getattr(q_fitness, _attr))
+            is_sentiment = _attr == 'ptb_ppl' and self.is_sentiment
+
+            val_p, val_q = test_domination(getattr(p_fitness, _attr), getattr(q_fitness, _attr), is_sentiment)
 
             p_score += val_p
             q_score += val_q

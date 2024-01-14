@@ -84,15 +84,17 @@ class EnvironmentConfig:
             "number_of_generations": 25,
             "override_transformation_count": 3,
             "alternative_nsga_crowding": False,
+            "initial_population_transformations_min": 1,
+            "initial_population_transformations": 10,
 
             "warm_start_models": True,
             "include_lstm": True,
             "include_gru": True,
 
             "character_level": True,
-            "dataset": "cfl",
+            "dataset": "ptb",
 
-            "ptb_training_epochs": 30,
+            "ptb_training_epochs": 15,
             "ptb_ppl_upper_threshold": 500000,
             "ptb_model_nlayers": 1,
             "force_ptb_training": True,
@@ -110,7 +112,7 @@ class EnvironmentConfig:
             ],
 
             "default_persistence_columns": [
-                "time", "model_id", "model_hash", "number_of_parameters", "training_time"
+                "time", "model_id", "model_hash", "number_of_blocks", "number_of_parameters", "training_time"
             ],
 
             "ptb_persistence_columns": [
