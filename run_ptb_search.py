@@ -61,10 +61,8 @@ def test_specific(identifier):
 
 if __name__ == '__main__':
 
-    RandomGenerator.setup(SEED)
-
     create_directories()
     Persistence.get_instance()
-
+    RandomGenerator.setup(SEED)
     with SearchDelegator() as NAS_Search:
         NAS_Search.search()

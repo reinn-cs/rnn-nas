@@ -25,7 +25,6 @@ class RandomGenerator:
             pickle_state = pickle.load(file)
             self.rng = np.random.RandomState()
             self.rng.set_state(pickle_state)
-            self.rng.choice()
             file.close()
             print('restored')
         else:

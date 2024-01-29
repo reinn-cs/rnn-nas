@@ -78,6 +78,7 @@ class EnvironmentConfig:
             "post_update_freq": 1,
             "time_limit": -1,
             "restore_if_possible": True,
+            "logging_debug": False,
 
             "population_size": 100,
             "population_to_select": 100,

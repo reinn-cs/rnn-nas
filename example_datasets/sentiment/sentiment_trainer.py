@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import time
+
+from persistence.model_persistence import ModelPersistence
 from utils.logger import LOG
 
 is_cuda = torch.cuda.is_available()
@@ -12,6 +14,7 @@ if is_cuda:
 else:
     device = torch.device("cpu")
 
+LOG.info(f'Using device: {device}')
 
 # function to predict accuracy
 def acc(pred, label):
@@ -128,6 +131,7 @@ class SentimentTrainer:
                 # torch.save(model.state_dict(), 'output/state_dict.pt')
                 LOG.debug('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(valid_loss_min,
                                                                                                     epoch_val_loss))
+                ModelPersistence.save_model(f'{model.identifier}_sentiment', model)
                 valid_loss_min = epoch_val_loss
                 valid_acc_max = epoch_val_acc
             LOG.debug(25 * '==')
@@ -136,15 +140,5 @@ class SentimentTrainer:
                 "time": time.time() - start_time,
                 "test_loss": epoch_val_acc * 100
             }
-
-        # now = datetime.datetime.now()
-        # date_format = '%d_%m_%Y_%H_%M_%S'
-        # format_date = now.strftime(date_format)
-        # torch.save({
-        #     'epoch_tr_loss': epoch_tr_loss,
-        #     'epoch_vl_loss': epoch_vl_loss,
-        #     'epoch_tr_acc': epoch_tr_acc,
-        #     'epoch_vl_acc': epoch_vl_acc
-        # }, f'output/{model.identifier}-values-{format_date}.pt')
 
         return valid_acc_max * 100, model_performance
