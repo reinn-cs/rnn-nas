@@ -11,9 +11,8 @@ from ops.search_delegator import SearchDelegator
 from persistence.persistence import Persistence
 
 SEED = 111111
-np.random.seed(SEED)
-torch.manual_seed(SEED)
 
+from utils.random_generator import RandomGenerator
 
 def make_dir(_directory):
     if not os.path.exists(_directory):
@@ -61,6 +60,9 @@ def test_specific(identifier):
 
 
 if __name__ == '__main__':
+
+    RandomGenerator.setup(SEED)
+
     create_directories()
     Persistence.get_instance()
 

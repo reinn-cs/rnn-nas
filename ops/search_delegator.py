@@ -2,12 +2,10 @@ import copy
 import glob
 import json
 import os
-import random
 import time
 import zipfile
 
 import jsonpickle
-import numpy as np
 import torch
 
 from config.env_config import EnvironmentConfig
@@ -34,6 +32,7 @@ from ops.probability_distribution import ProbabilityDistribution
 from persistence.model_persistence import ModelPersistence
 from persistence.persistence import Persistence
 from utils.logger import LOG
+from utils.random_generator import RandomGenerator
 from utils.slack_post import SlackPost
 from utils.tensorboard_writer import TensorBoardWriter
 
@@ -295,10 +294,10 @@ class SearchDelegator:
                 selection.append(keys_to_select_from[0])
                 break
 
-            parent_1 = random.choice(keys_to_select_from)
-            parent_2 = random.choice(keys_to_select_from)
+            parent_1 = RandomGenerator.choice(keys_to_select_from)
+            parent_2 = RandomGenerator.choice(keys_to_select_from)
             while parent_1 == parent_2:
-                parent_2 = random.choice(keys_to_select_from)
+                parent_2 = RandomGenerator.choice(keys_to_select_from)
 
             # Attempt selection based on domination (lower is better).
             if candidate_fronts[parent_1] < candidate_fronts[parent_2]:
@@ -405,21 +404,6 @@ class SearchDelegator:
         result = parents
         result += list(copy.copy(self.fronts[front_key]))
         return result
-
-    def sort_by_rank_and_distance(self, front_key) -> list:
-        distances = self.crowding_distances[front_key]
-
-        values = []
-        for idx in distances.keys():
-            values.append((distances[idx], idx))
-
-        values = sorted(values, key=lambda x: (x[0]))
-
-        result_list = []
-        for _v in values:
-            (val, key) = _v
-            result_list.append(key)
-        return result_list
 
     def get_architecture_to_select_from(self) -> list:
         """
@@ -640,7 +624,7 @@ class SearchDelegator:
 
     def get_sentiment_fitness(self, cell_key):
 
-        print('Start sentiment')
+        LOG.info('Start sentiment')
         data_loader = SentimentDataLoader()
         no_layers = 1
         vocab_size = len(data_loader.vocab) + 1  # extra 1 for padding
@@ -652,8 +636,12 @@ class SearchDelegator:
         builder = BlockStateBuilder(cell_key)
         model = SentimentModel(architecture, cell_key, builder, no_layers, vocab_size, hidden_dim, embedding_dim, output_dim, lstm_model=False, basic_rnn=False)
 
+        parent_key = self.architectures[cell_key].get_parent()
+        if parent_key is not None and self.config('warm_start_models'):
+            ModelPersistence.load_model(f'{parent_key}_sentiment', model)
+
         trainer = SentimentTrainer()
-        print('Start sentiment training')
+        LOG.info(f'Start sentiment training {cell_key}')
         accuracy, performance = trainer.train(model, data_loader)
 
         total_params = 0
@@ -667,7 +655,7 @@ class SearchDelegator:
         NASController.set_architecture_performance(cell_key, ArchitectureObjectives.NUMBER_OF_BLOCKS, len(self.architectures[cell_key].blocks.keys()))
         NASController.set_architecture_performance(cell_key, ArchitectureObjectives.NUMBER_OF_PARAMETERS, total_params)
 
-        print('Done sentiment training')
+        LOG.info(f'Done sentiment training {cell_key}')
         return accuracy, accuracy, performance
 
 
@@ -776,7 +764,7 @@ class SearchDelegator:
                 counter = 0
                 exceptions = []
                 while child_arch is None and counter < 10:
-                    parent = np.random.choice(parents_buffer)
+                    parent = RandomGenerator.choice(parents_buffer)
                     try:
                         child_arch = copy.deepcopy(self.architectures[parent])
                         child_key = self.get_next_key(parent)

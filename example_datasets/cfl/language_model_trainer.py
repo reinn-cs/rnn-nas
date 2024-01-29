@@ -11,6 +11,7 @@ from model.exploding_gradient_exception import ExplodingGradientException
 from ops.nas_controller import NASController
 from persistence.model_persistence import ModelPersistence
 from utils.logger import LOG
+from utils.random_generator import RandomGenerator
 from utils.tensorboard_writer import TensorBoardWriter
 
 LOG = LOG.get_instance().get_logger()
@@ -39,7 +40,7 @@ class Language_Model_Trainer:
 
     def train_model(self, model, data_generator, writer_key, parent_performance):
         if EnvironmentConfig.get_config('simulate_results'):
-            loss = np.random.uniform(1, 15)
+            loss = RandomGenerator.uniform(1, 15)
             return loss, {}
 
         optimizer = self.get_optimizer(model)
@@ -202,7 +203,7 @@ class Language_Model_Trainer:
         if predictions.size == 1 or len(predictions) == 1:
             predicted_idx = predictions[0]
         elif predictions[0] == 1 and predictions[1] == 1:
-            rn = random.randint(1, 21)
+            rn = RandomGenerator.randint(1, 21)
             if rn % 2 == 0:
                 predicted_idx = 0
             else:

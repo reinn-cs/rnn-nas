@@ -1,16 +1,15 @@
 import copy
 import os.path
-import random
 import string
 
 import jsonpickle
-import numpy as np
 
 from config.env_config import EnvironmentConfig
 from model.architecture import Architecture
 from model.block import Block
 from ops.probability_distribution import ProbabilityDistribution
 from utils.logger import LOG
+from utils.random_generator import RandomGenerator
 
 LOG = LOG.get_instance().get_logger()
 
@@ -194,17 +193,17 @@ class BlockTransformation:
         transformation_list = ListOfTransformations()
         if transformation_count is None:
             if self.generation == 0:
-                number_of_transformations = np.random.randint(EnvironmentConfig.get_config('initial_population_transformations_min'),
+                number_of_transformations = RandomGenerator.randint(EnvironmentConfig.get_config('initial_population_transformations_min'),
                                   EnvironmentConfig.get_config('initial_population_transformations')+1)
             else:
                 number_of_transformations = ProbabilityDistribution.get_number_of_transformations()
         else:
-            number_of_transformations = np.random.randint(1, transformation_count + 1)
+            number_of_transformations = RandomGenerator.randint(1, transformation_count + 1)
 
         if EnvironmentConfig.get_config('override_transformation_count') > 0 and self.generation > 0:
             number_of_transformations = EnvironmentConfig.get_config('override_transformation_count')
             if number_of_transformations > 1:
-                number_of_transformations = np.random.randint(1, number_of_transformations + 1)
+                number_of_transformations = RandomGenerator.randint(1, number_of_transformations + 1)
 
             LOG.info(f'{"=" * 10} [OVERRIDE] {number_of_transformations} transformations {"=" * 10}')
         else:
@@ -215,7 +214,7 @@ class BlockTransformation:
         gate_transformation = False
         if 'add_gate' in options and EnvironmentConfig.get_config('gate_unit_option') == 'limit_morphism' and  self.generation > 0 and not initial_generation:
             options.remove('add_gate')
-            gate_transformation = np.random.randint(11) < 3
+            gate_transformation = RandomGenerator.randint(11) < 3
             if gate_transformation:
                 number_of_transformations = 1
                 LOG.info('Forcing a single gate unit transformation.')
@@ -341,9 +340,9 @@ class BlockTransformation:
             """
             Allow for optionally performing a (weighted) linear activation
             """
-            chance = str(np.random.choice(['lin', 'non']))
+            chance = str(RandomGenerator.choice(['lin', 'non']))
             if chance == 'lin':
-                linear_activation = str(np.random.choice(['linear', 'linear_b']))
+                linear_activation = str(RandomGenerator.choice(['linear', 'linear_b']))
                 new_lin_key = self.get_output_key(architecture, 'linear_block')
                 new_linear_unit = Block([input_block_key], new_lin_key, activation=linear_activation)
                 architecture.add_block(new_linear_unit)
@@ -409,7 +408,7 @@ class BlockTransformation:
 
         if input_block_key == 'x':
             linear_block_key = self.get_output_key(architecture, 'linear_block')
-            linear_activation = np.random.choice(['linear', 'linear_b'])
+            linear_activation = RandomGenerator.choice(['linear', 'linear_b'])
             linear_block = Block([input_block_key], linear_block_key, activation=linear_activation, immutable=True)
             architecture.add_block(linear_block)
             input_block_key = linear_block_key
@@ -608,7 +607,7 @@ class BlockTransformation:
         output_key = str(list(architecture.get_all_block_keys())[0])
         count = 100
         while output_key in architecture.get_all_block_keys():
-            output_key = f'{prefix}_' + arr[random.randint(0, len(arr) - 1)] + '_' + str(random.randint(1, count))
+            output_key = f'{prefix}_' + arr[RandomGenerator.randint(0, len(arr) - 1)] + '_' + str(RandomGenerator.randint(1, count))
             count +=1
         return output_key
 
@@ -628,14 +627,14 @@ class BlockTransformation:
         blocks_to_select_from.remove('h')
         blocks_to_select_from.remove('c')
 
-        receiving_block_key = str(np.random.choice(blocks_to_select_from))
+        receiving_block_key = str(RandomGenerator.choice(blocks_to_select_from))
         receiving_block_inputs = []
         for inp in architecture.blocks[receiving_block_key].inputs:
             if type(inp) is not int and inp not in ['x', 'h', 'c']:
                 receiving_block_inputs.append(inp)
 
         if len(receiving_block_inputs) == 0:
-            receiving_block_key = str(np.random.choice(blocks_to_select_from))
+            receiving_block_key = str(RandomGenerator.choice(blocks_to_select_from))
             receiving_block_inputs = []
             for inp in architecture.blocks[receiving_block_key].inputs:
                 if type(inp) is not int and inp not in ['x', 'h', 'c']:
@@ -644,7 +643,7 @@ class BlockTransformation:
             if len(receiving_block_inputs) == 0:
                 return AddUnitTransformation(None, None, None, None)
 
-        input_block_key = str(np.random.choice(receiving_block_inputs))
+        input_block_key = str(RandomGenerator.choice(receiving_block_inputs))
 
         options = EnvironmentConfig.get_config('activation_functions')
         distribution = ProbabilityDistribution.get_distribution(options)
@@ -659,7 +658,7 @@ class BlockTransformation:
             LOG.info('State has 0 activation layers, skipping \'remove_single_unit\'.')
             return RemoveUnitTransformation(None)
         else:
-            random_block_key = str(np.random.choice(activation_layers))
+            random_block_key = str(RandomGenerator.choice(activation_layers))
             return RemoveUnitTransformation(random_block_key)
 
     def generate_add_connection(self, architecture: Architecture, force_recurrent=False) -> AddConnectionTransformation:
@@ -675,19 +674,19 @@ class BlockTransformation:
             possible_receiving_blocks.remove('h')
             possible_receiving_blocks.remove('c')
 
-        input_block_key = str(np.random.choice(possible_input_blocks))
+        input_block_key = str(RandomGenerator.choice(possible_input_blocks))
         input_block = architecture.blocks[input_block_key]
 
-        receiving_block_key = str(np.random.choice(possible_receiving_blocks))
+        receiving_block_key = str(RandomGenerator.choice(possible_receiving_blocks))
         receiving_block = architecture.blocks[receiving_block_key]
 
         count = 0
         while receiving_block_key in input_block.build_block_chain(
                 architecture) or receiving_block_key in ['x', 'h', 'c'] or input_block_key in receiving_block.inputs:
-            input_block_key = str(np.random.choice(possible_input_blocks))
+            input_block_key = str(RandomGenerator.choice(possible_input_blocks))
             input_block = architecture.blocks[input_block_key]
 
-            receiving_block_key = str(np.random.choice(possible_receiving_blocks))
+            receiving_block_key = str(RandomGenerator.choice(possible_receiving_blocks))
             receiving_block = architecture.blocks[receiving_block_key]
             if count > 10:
                 return AddConnectionTransformation(None, None, None, None)
@@ -714,15 +713,15 @@ class BlockTransformation:
                     return True
             return False
 
-        random_block_key = str(np.random.choice(blocks_to_select_from))
+        random_block_key = str(RandomGenerator.choice(blocks_to_select_from))
         while not check_block_against_inputs(random_block_key):
             blocks_to_select_from.remove(random_block_key)
             if len(blocks_to_select_from) == 0:
                 LOG.info('Cannot find a block to remove a connection from.')
                 return RemoveConnectionTransformation(None, None)
-            random_block_key = str(np.random.choice(blocks_to_select_from))
+            random_block_key = str(RandomGenerator.choice(blocks_to_select_from))
 
-        new_output = str(np.random.choice(architecture.blocks[random_block_key].inputs))
+        new_output = str(RandomGenerator.choice(architecture.blocks[random_block_key].inputs))
         return RemoveConnectionTransformation(random_block_key, new_output)
 
     def generate_change_random_activation(self, architecture: Architecture) -> ChangeRandomActivationTransformation:
@@ -731,7 +730,7 @@ class BlockTransformation:
             LOG.info('State has 0 activation layers, skipping \'change_random_activation\'.')
             return ChangeRandomActivationTransformation(None, None, None)
 
-        random_block_idx = random.randint(0, len(activation_layers) - 1)
+        random_block_idx = RandomGenerator.randint(0, len(activation_layers) - 1)
         random_block_key = activation_layers[random_block_idx]
 
         original_activation = copy.deepcopy(architecture.blocks[random_block_key].activation[0])
@@ -751,7 +750,7 @@ class BlockTransformation:
             LOG.info('State has 0 connected layers, skipping \'change_combination_connection\'.')
             return ChangeCombinationConnectionTransformation(None, None, None)
 
-        random_block_key = str(np.random.choice(blocks_to_select_from))
+        random_block_key = str(RandomGenerator.choice(blocks_to_select_from))
         if architecture.blocks[random_block_key].combination is None:
             block_combination = 'add'
         else:
@@ -777,19 +776,19 @@ class BlockTransformation:
             while str(i) in possible_receiving_blocks:
                 possible_receiving_blocks.remove(str(i))
 
-        receiving_block_key = str(np.random.choice(possible_receiving_blocks))
+        receiving_block_key = str(RandomGenerator.choice(possible_receiving_blocks))
 
         combination_options = EnvironmentConfig.get_config('combination_methods')
-        combination = str(np.random.choice(combination_options))
+        combination = str(RandomGenerator.choice(combination_options))
 
         input_options = ['x', 'h', 'c']
         if combination == 'sub':
             # To allow for a gate similar to the GRU '1-z'
             input_options.append('1')
 
-        input_1 = str(np.random.choice(input_options))
+        input_1 = str(RandomGenerator.choice(input_options))
         input_options.remove(input_1)
-        input_2 = str(np.random.choice(input_options))
+        input_2 = str(RandomGenerator.choice(input_options))
 
         if input_2 == '1':
             input_2 = input_1
@@ -798,14 +797,14 @@ class BlockTransformation:
         transformation_inputs = [input_1, input_2]
 
         input_activations = [
-            str(np.random.choice(['linear', 'linear_b'])),
-            str(np.random.choice(['linear', 'linear_b']))
+            str(RandomGenerator.choice(['linear', 'linear_b'])),
+            str(RandomGenerator.choice(['linear', 'linear_b']))
         ]
 
         activation_options = EnvironmentConfig.get_config('activation_functions')
         activation_options.remove('linear')
         activation_options.remove('linear_b')
-        activation = str(np.random.choice(activation_options))
+        activation = str(RandomGenerator.choice(activation_options))
 
         inp_1_key = str(input_1) + '_' + self.get_output_key(architecture, 'new_gate_input')
         inp_2_key = str(input_2) + '_' + self.get_output_key(architecture, 'new_gate_input')
@@ -866,7 +865,7 @@ class BlockTransformation:
 
     def get_random_strings(self):
         arr = list(string.ascii_lowercase)
-        return f'{str(np.random.choice(arr))}{str(np.random.choice(arr))}_{str(np.random.choice(arr))}{str(np.random.choice(arr))}'
+        return f'{str(RandomGenerator.choice(arr))}{str(RandomGenerator.choice(arr))}_{str(RandomGenerator.choice(arr))}{str(RandomGenerator.choice(arr))}'
 
     def get_random_activation(self) -> str:
         activation_options = EnvironmentConfig.get_config('activation_functions')

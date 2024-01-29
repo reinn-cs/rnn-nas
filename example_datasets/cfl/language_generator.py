@@ -6,6 +6,8 @@ import numpy as np
 import torch
 from scipy.special import gamma
 
+from utils.random_generator import RandomGenerator
+
 START_SYMBOL = 'S'
 TERMINATION_SYMBOL = 'T'
 epsilon = 0.5  # Epsilon value -- output threshold (during test time)
@@ -49,8 +51,8 @@ class Language_Generator:
         return input_arr, output_arr, collections.Counter(nums)
 
     def get_word(self, n_range, m_range):
-        n = np.random.randint(1, n_range)
-        m = np.random.randint(1, m_range)
+        n = RandomGenerator.randint(1, n_range)
+        m = RandomGenerator.randint(1, m_range)
         input = f'{"a" * n}{"b" * m}{"c" * n}'
         output = f'{"d" * n}{"b" * (m - 1)}{"c" * n}T'
         return input, output
@@ -83,22 +85,22 @@ class Language_Generator:
     def sample_from_a_distrib(self, domain, sample_size, distrib_name):
         N = len(domain)
         if distrib_name == 'uniform':
-            return np.random.choice(a=domain, size=sample_size)
+            return RandomGenerator.choice(a=domain, size=sample_size)
 
         elif distrib_name == 'u-shaped':
             alpha = 0.25
             beta = 0.25
-            return np.random.choice(a=domain, size=sample_size, p=self.beta_bin_distrib(alpha, beta, N - 1))
+            return RandomGenerator.choice(a=domain, size=sample_size, p=self.beta_bin_distrib(alpha, beta, N - 1))
 
         elif distrib_name == 'right-tailed':
             alpha = 1
             beta = 5
-            return np.random.choice(a=domain, size=sample_size, p=self.beta_bin_distrib(alpha, beta, N - 1))
+            return RandomGenerator.choice(a=domain, size=sample_size, p=self.beta_bin_distrib(alpha, beta, N - 1))
 
         elif distrib_name == 'left-tailed':
             alpha = 5
             beta = 1
-            return np.random.choice(a=domain, size=sample_size, p=self.beta_bin_distrib(alpha, beta, N - 1))
+            return RandomGenerator.choice(a=domain, size=sample_size, p=self.beta_bin_distrib(alpha, beta, N - 1))
 
         else:
             raise Exception(f'Unknown distribution {distrib_name}')

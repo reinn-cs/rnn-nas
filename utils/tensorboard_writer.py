@@ -6,7 +6,7 @@ LOG = LOG.get_instance().get_logger()
 
 PATH = './output/runs/'
 
-WRITE_TENSOR_BOARD = True
+WRITE_TENSOR_BOARD = False
 
 
 class TensorBoardWriter:

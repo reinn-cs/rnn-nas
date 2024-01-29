@@ -253,7 +253,8 @@ class Persistence:
             entry_df = pd.DataFrame.from_dict(entry)
             df = pd.concat([df, entry_df], ignore_index=True)
 
-        df = df.sort_values(by=self.specific_columns, ascending=True)
+        is_sentiment = EnvironmentConfig.get_config('dataset') == 'sentiment'
+        df = df.sort_values(by=self.specific_columns, ascending=not is_sentiment)
         df.to_csv(CSV_PATH, index=False)
 
     @staticmethod

@@ -1,10 +1,8 @@
 import copy
 import math
 import os
-import random
 import time
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.onnx
@@ -21,6 +19,7 @@ from ops.nas_controller import NASController
 from persistence.model_persistence import ModelPersistence
 from utils.device_controller import DeviceController
 from utils.logger import LOG
+from utils.random_generator import RandomGenerator
 from utils.slack_post import SlackPost
 from utils.tensorboard_writer import TensorBoardWriter
 
@@ -75,10 +74,10 @@ class PtbTrainer(TrainerInterface):
             opt_override=None, override_train_data=False):
 
         if EnvironmentConfig.get_config('simulate_results'):
-            loss = np.random.uniform(1, 6.5)
+            loss = RandomGenerator.uniform(1, 6.5)
             MIN_BLOCKS = len(BlockStateBuilder.get_basic_architecture().blocks.keys())
             MAX_BLOCKS = len(BlockStateBuilder.get_lstm_architecture().blocks.keys())
-            self.model_params = np.random.randint(MIN_BLOCKS, MAX_BLOCKS)
+            self.model_params = RandomGenerator.randint(MIN_BLOCKS, MAX_BLOCKS)
             return loss, math.exp(loss), {}
 
         LOG.info(f'Running for {self.model_identifier} with {self.epochs} epochs.')
@@ -288,7 +287,7 @@ class PtbTrainer(TrainerInterface):
         total_loss = 0
         start_time = time.time()
         if EnvironmentConfig.get_config('simulate_results'):
-            time.sleep(random.uniform(1, 10))
+            time.sleep(RandomGenerator.uniform(1, 10))
             return
 
         hidden = model.init_hidden(self.batch_size)
@@ -370,8 +369,8 @@ class PtbTrainer(TrainerInterface):
 
     def evaluate(self, model, data_source, criterion):
         if EnvironmentConfig.get_config('simulate_results'):
-            time.sleep(random.uniform(1, 10))
-            return random.uniform(0, 50)
+            time.sleep(RandomGenerator.uniform(1, 10))
+            return RandomGenerator.uniform(0, 50)
 
         # Turn on evaluation mode which disables dropout.
         with torch.no_grad():

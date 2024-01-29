@@ -1,6 +1,5 @@
 import datetime
 import math
-import random
 
 import matplotlib
 import numpy as np
@@ -13,6 +12,7 @@ from example_datasets.sine_wave.generate_sine_wave import generate_data
 from ops.nas_controller import NASController
 from persistence.model_persistence import ModelPersistence
 from utils.device_controller import DeviceController
+from utils.random_generator import RandomGenerator
 from utils.tensorboard_writer import TensorBoardWriter
 
 matplotlib.use('Agg')
@@ -40,27 +40,24 @@ class SineWaveTrainer:
     def train_model(self, model, model_identifier, writer_key, generation, parent_epoch_performance, number_of_phases=3,
                     noise_range=0.0):
         if EnvironmentConfig.get_config('simulate_results'):
-            test_val = np.random.randint(0, 100)
+            test_val = RandomGenerator.randint(0, 100)
             if test_val >= 90:
                 raise ExplodingGradient('Gradient exploding.')
 
-            return np.random.uniform(0.01, 50.5), np.random.uniform(0.01, 50.5), {}
+            return RandomGenerator.uniform(0.01, 50.5), RandomGenerator.uniform(0.01, 50.5), {}
 
         optimizer = self.get_optimizer(model)
         criterion = self.get_loss_function()
 
-        # set random seed to 0
-        # np.random.seed(0)
-        # torch.manual_seed(0)
         # load data and make training set
         max_phases = 100
         data = generate_data(phases=max_phases, noise_range_p=noise_range)
 
         training_phases = []
         for i in range(number_of_phases):
-            phase = random.randint(0, max_phases - 1)
+            phase = RandomGenerator.randint(0, max_phases - 1)
             while phase in training_phases:
-                phase = random.randint(0, max_phases - 1)
+                phase = RandomGenerator.randint(0, max_phases - 1)
 
             training_phases.append(phase)
 
@@ -68,9 +65,9 @@ class SineWaveTrainer:
 
         testing_phases = []
         for i in range(self.config['sine_model_test_phases']):
-            phase = random.randint(0, max_phases - 1)
+            phase = RandomGenerator.randint(0, max_phases - 1)
             while phase in training_phases or phase in testing_phases:
-                phase = random.randint(0, max_phases - 1)
+                phase = RandomGenerator.randint(0, max_phases - 1)
 
             testing_phases.append(phase)
 
@@ -185,9 +182,6 @@ class SineWaveTrainer:
             raise Exception(f'Unknown loss function {lf}')
 
     def get_model_output(self, model, noise_range=0.0):
-        # set random seed to 0
-        # np.random.seed(0)
-        # torch.manual_seed(0)
         criterion = self.get_loss_function()
 
         data = generate_data(phases=self.config['sine_model_test_phases'], noise_range_p=noise_range)

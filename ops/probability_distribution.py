@@ -1,9 +1,6 @@
 from collections import Counter
-from random import choice, choices
-
-import numpy as np
-
 from config.env_config import EnvironmentConfig
+from utils.random_generator import RandomGenerator
 
 
 class ProbabilityDistribution:
@@ -53,7 +50,7 @@ class ProbabilityDistribution:
             if prob is not None:
                 options[key] = prob
 
-        samples = choices(list(options.keys()), list(options.values()), k=samples)
+        samples = RandomGenerator.choice(list(options.keys()), size=samples, p=list(options.values()))
         return Counter(samples)
 
     @staticmethod
@@ -82,9 +79,9 @@ class ProbabilityDistribution:
 
     @staticmethod
     def get_number_of_transformations():
-        return np.random.randint(1, EnvironmentConfig.get_config('override_transformation_count')+1)
+        return RandomGenerator.randint(1, EnvironmentConfig.get_config('override_transformation_count')+1)
 
     @staticmethod
     def get_uniform_number_of_transformations(max=5):
         options = [i for i in range(1, max + 1)]
-        return choice(options)
+        return RandomGenerator.choice(options)
