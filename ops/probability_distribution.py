@@ -50,6 +50,10 @@ class ProbabilityDistribution:
             if prob is not None:
                 options[key] = prob
 
+        count = len(options.keys())
+        for key in options.keys():
+            options[key] = 1.0 / count
+
         samples = RandomGenerator.choice(list(options.keys()), size=samples, p=list(options.values()))
         return Counter(samples)
 
