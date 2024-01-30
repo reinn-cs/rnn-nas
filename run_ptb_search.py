@@ -1,6 +1,6 @@
 import os
 import random
-
+import sys
 import jsonpickle
 import numpy as np
 import torch
@@ -60,6 +60,9 @@ def test_specific(identifier):
 
 
 if __name__ == '__main__':
+
+    if len(sys.argv) > 1:
+        SEED = int(sys.argv[1])
 
     create_directories()
     Persistence.get_instance()

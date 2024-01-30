@@ -64,6 +64,7 @@ class RandomGenerator:
 
     @staticmethod
     def setup(seed):
+        print(f'Setup with seed: {seed}')
         RandomGenerator.instance()._restore_rng_state(seed)
 
     @staticmethod
