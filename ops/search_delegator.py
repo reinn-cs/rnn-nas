@@ -917,6 +917,7 @@ class SearchDelegator:
     def zipit(self, folders, zip_filename):
         zip_file = zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED)
 
+        count = 0
         for folder in folders:
             for dirpath, dirnames, filenames in os.walk(folder):
                 if not 'models' in dirpath and not 'models' in dirnames:
@@ -924,8 +925,10 @@ class SearchDelegator:
                         zip_file.write(
                             os.path.join(dirpath, filename),
                             os.path.relpath(os.path.join(dirpath, filename), os.path.join(folders[0], '../..')))
+                        count += 1
 
         zip_file.close()
+        LOG.debug(f'Saved {count} files to Google Drive.')
 
     def get_restore_versions(self, files=None, generation_specific=None):
         """
