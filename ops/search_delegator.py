@@ -891,11 +891,17 @@ class SearchDelegator:
                 f.write(json_object)
                 f.close()
                 LOG.debug(f'Saved architecture {_arch}')
+
+        self.zip_files()
+
         return snapshot_path
 
     def zip_files(self):
         if os.path.exists('/content/drive/My Drive/msc_run'):
             folders = []
+            if os.path.exists('./config/'):
+                folders.append('./config/')
+
             if os.path.exists('./output/'):
                 folders.append('./output/')
 
@@ -906,7 +912,7 @@ class SearchDelegator:
                 folders.append('./performance')
 
             if len(folders) > 0:
-                self.zipit(folders, '/content/drive/My Drive/msc_run/ptb_iter.zip')
+                self.zipit(folders, f'/content/drive/My Drive/msc_run/{EnvironmentConfig.get_config("dataset")}.zip')
 
     def zipit(self, folders, zip_filename):
         zip_file = zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED)
