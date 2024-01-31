@@ -888,8 +888,8 @@ class SearchDelegator:
         LOG.debug('Successfully updated snapshot.')
 
         for _arch in self.architectures.keys():
-            if not os.path.exists(f'{restore_path}/architectures/{_arch}.json'):
-                f = open(f'{restore_path}/architectures/{_arch}.json', 'w')
+            if not os.path.exists(f'{RESTORE}/architectures/{_arch}.json'):
+                f = open(f'{RESTORE}/architectures/{_arch}.json', 'w')
                 json_object = jsonpickle.encode(self.architectures[_arch])
                 f.write(json_object)
                 f.close()
