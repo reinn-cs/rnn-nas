@@ -4,8 +4,10 @@ import time
 import jsonpickle
 import torch
 
+from config.env_config import EnvironmentConfig
 from model.architecture_objectives import ArchitectureObjectives
 
+RESTORE_DIR = './output/restore' if not os.path.exists('/content/drive/My Drive/msc_run') else f'/content/drive/My Drive/msc_run/{EnvironmentConfig.get_config("dataset")}/restore'
 
 class NASController:
     """
@@ -26,8 +28,8 @@ class NASController:
         NASController.__instance = self
 
     def setup_model_epoch_performances(self):
-        if os.path.exists('./restore/model_epoch_performances.json'):
-            f = open(f'./restore/model_epoch_performances.json', 'r')
+        if os.path.exists(f'{RESTORE_DIR}/model_epoch_performances.json'):
+            f = open(f'{RESTORE_DIR}/model_epoch_performances.json', 'r')
             json_str = f.read()
             self.architecture_epoch_performance = jsonpickle.decode(json_str)
             f.close()
@@ -88,7 +90,7 @@ class NASController:
         for key in NASController.get_instance().architecture_epoch_performance.keys():
             model_epoch_performances[key] = NASController.get_instance().architecture_epoch_performance[key]
 
-        f = open(f'./restore/model_epoch_performances.json', 'w')
+        f = open(f'{RESTORE_DIR}/model_epoch_performances.json', 'w')
         json_object = jsonpickle.encode(model_epoch_performances)
         f.write(json_object)
         f.close()
@@ -111,9 +113,9 @@ class NASController:
 
     @staticmethod
     def get_current_state():
-        if not os.path.exists('./restore/state.pt'):
+        if not os.path.exists(f'{RESTORE_DIR}/state.pt'):
             return {}
-        return torch.load('./restore/state.pt')
+        return torch.load(f'{RESTORE_DIR}/state.pt')
 
     @staticmethod
     def get_results_for_architecture(identifier):
@@ -129,19 +131,19 @@ class NASController:
             state['architecture_results'] = {}
 
         state['architecture_results'][identifier] = results
-        torch.save(state, './restore/state.pt')
+        torch.save(state, f'{RESTORE_DIR}/state.pt')
 
     @staticmethod
     def set_architectures_currently_evaluating(architectures):
-        f = open('./restore/currently_evaluating.json', 'w')
+        f = open(f'{RESTORE_DIR}/currently_evaluating.json', 'w')
         json_object = jsonpickle.encode(architectures)
         f.write(json_object)
         f.close()
 
     @staticmethod
     def get_architectures_currently_evaluating():
-        if os.path.exists('./restore/currently_evaluating.json'):
-            f = open(f'./restore/currently_evaluating.json', 'r')
+        if os.path.exists(f'{RESTORE_DIR}/currently_evaluating.json'):
+            f = open(f'{RESTORE_DIR}/currently_evaluating.json', 'r')
             json_str = f.read()
             f.close()
             return jsonpickle.decode(json_str)

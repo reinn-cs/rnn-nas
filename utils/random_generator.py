@@ -2,12 +2,18 @@ import os
 import numpy as np
 import pickle
 
+from config.env_config import EnvironmentConfig
+
+
 class RandomGenerator:
     __instance = None
 
     def __init__(self):
         if RandomGenerator.__instance is None:
             self.rng = None
+            self.path = './restore/rng_state.pkl'
+            if os.path.exists('/content/drive/My Drive/msc_run'):
+                self.path = f'/content/drive/My Drive/msc_run/{EnvironmentConfig.get_config("dataset")}/restore/rng_state.pkl'
             RandomGenerator.__instance = self
 
     def _set_seed_value(self, seed_value):
@@ -15,13 +21,13 @@ class RandomGenerator:
 
     def _save_rng_state(self):
         state = self.rng.get_state()
-        p_file = open('./restore/rng_state.pkl', 'wb')
+        p_file = open(self.path, 'wb')
         pickle.dump(state, p_file)
         p_file.close()
 
     def _restore_rng_state(self, seed):
-        if os.path.exists('./restore/rng_state.pkl'):
-            file = open('./restore/rng_state.pkl', 'rb')
+        if os.path.exists(self.path):
+            file = open(self.path, 'rb')
             pickle_state = pickle.load(file)
             self.rng = np.random.RandomState()
             self.rng.set_state(pickle_state)

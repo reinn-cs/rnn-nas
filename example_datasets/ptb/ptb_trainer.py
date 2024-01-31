@@ -29,6 +29,8 @@ LOG = LOG.get_instance().get_logger()
 alpha = 2
 beta = 1
 
+GOOGLE_DRIVE_EXISTS = os.path.exists('/content/drive/My Drive/msc_run')
+OUTPUT = f'./output' if not GOOGLE_DRIVE_EXISTS else f'/content/drive/My Drive/msc_run/{EnvironmentConfig.get_config("dataset")}/output'
 
 def get_batch(source, i, seq_len=None, evaluation=False):
     seq_len = min(seq_len if seq_len else args.bptt, len(source) - 1 - i)
@@ -90,16 +92,16 @@ class PtbTrainer(TrainerInterface):
 
             if warm_start_parent is not None:
                 try:
-                    if os.path.exists(f'./output/models/{warm_start_parent}.tar'):
+                    if os.path.exists(f'{OUTPUT}/models/{warm_start_parent}.tar'):
                         ModelPersistence.load_model(f'{warm_start_parent}', model)
                         LOG.info(f'Warm started {self.model_identifier} from parent {warm_start_parent}.')
-                    elif os.path.exists(f'./output/models/{warm_start_parent}_ptb.tar'):
+                    elif os.path.exists(f'{OUTPUT}/models/{warm_start_parent}_ptb.tar'):
                         ModelPersistence.load_model(f'{warm_start_parent}_ptb', model)
                         LOG.info(f'Warm started {self.model_identifier} from parent {warm_start_parent}.')
                     else:
                         LOG.info(
                             f'Warm start enabled for {self.model_identifier} but parent {warm_start_parent} could not be found.')
-                        if os.path.exists(f'./output/models/{self.model_identifier}_ptb.tar'):
+                        if os.path.exists(f'{OUTPUT}/models/{self.model_identifier}_ptb.tar'):
                             ModelPersistence.load_model(f'{self.model_identifier}_ptb', model)
                 except Exception as e:
                     """
@@ -147,9 +149,9 @@ class PtbTrainer(TrainerInterface):
 
         LOG.info(opt)
         opt_override_txt = f'_{opt_override}' if opt_override else ""
-        MODEL_CHECKPOINT_PATH = f'./output/ptb_checkpoint_{self.model_identifier}{opt_override_txt}.tar'
+        MODEL_CHECKPOINT_PATH = f'{OUTPUT}/ptb_checkpoint_{self.model_identifier}{opt_override_txt}.tar'
         model_epoch_performance = {'training_time': []}
-        if not os.path.exists(f'./output/models/{self.model_identifier}_ptb.tar') or force_training:
+        if not os.path.exists(f'{OUTPUT}/models/{self.model_identifier}_ptb.tar') or force_training:
             try:
                 epoch = 0
                 epoch_check = 0
@@ -247,7 +249,7 @@ class PtbTrainer(TrainerInterface):
 
         NASController.stop_training_time_for_architecture(model.identifier)
         LOG.info(f'Loading best model for {self.model_identifier} for final evaluation.')
-        if os.path.exists(f'./output/models/{self.model_identifier}{opt_override_txt}_ptb.tar'):
+        if os.path.exists(f'{OUTPUT}/models/{self.model_identifier}{opt_override_txt}_ptb.tar'):
             ModelPersistence.load_model(f'{self.model_identifier}{opt_override_txt}_ptb', model)
         else:
             LOG.info(f'Tried to load best model for {self.model_identifier} but file does not exist.')

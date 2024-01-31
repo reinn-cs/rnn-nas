@@ -38,6 +38,9 @@ from utils.tensorboard_writer import TensorBoardWriter
 
 LOG = LOG.get_instance().get_logger()
 
+GOOGLE_DRIVE_EXISTS = os.path.exists('/content/drive/My Drive/msc_run')
+RESTORE = f'./restore' if not GOOGLE_DRIVE_EXISTS else f'/content/drive/My Drive/msc_run/{EnvironmentConfig.get_config("dataset")}/restore'
+OUTPUT = f'./output' if not GOOGLE_DRIVE_EXISTS else f'/content/drive/My Drive/msc_run/{EnvironmentConfig.get_config("dataset")}/output'
 
 class SearchDelegator:
     """
@@ -139,7 +142,7 @@ class SearchDelegator:
                 self.log_current_metrics()
 
                 self.generation += 1
-                if i + 1 < self.config('number_of_generations') and not os.path.exists('./output/kill.txt'):
+                if i + 1 < self.config('number_of_generations') and not os.path.exists(f'{OUTPUT}/kill.txt'):
 
                     architectures_to_select_from = self.get_architecture_to_select_from()
                     if len(architectures_to_select_from) == population_size:
@@ -162,7 +165,7 @@ class SearchDelegator:
                 diff = time.time() - gen_start
                 self.generation_times.append(diff)
 
-                if os.path.exists('./output/kill.txt'):
+                if os.path.exists(f'{OUTPUT}/kill.txt'):
                     LOG.info(f'Trigger found, exiting.')
                     SlackPost.post_neutral('Exit trigger', 'Trigger found, exiting.')
                     break
@@ -549,7 +552,7 @@ class SearchDelegator:
                         best_ppl=best_ppl) as ptb_trainer:
 
             model = None
-            if os.path.exists(f'./output/models/{cell_key}.tar'):
+            if os.path.exists(f'{OUTPUT}/models/{cell_key}.tar'):
                 model = ptb_trainer.build_model()
                 ModelPersistence.load_model(cell_key, model)
                 LOG.debug(f'Loaded existing model for {cell_key}.')
@@ -600,7 +603,7 @@ class SearchDelegator:
                 parent_performance = self.population_fitness[parent_key].sine_wave_performance
 
         if self.config('warm_start_models') and parent_key is not None:
-            if os.path.exists(f'./output/models/{parent_key}.tar'):
+            if os.path.exists(f'{OUTPUT}/models/{parent_key}.tar'):
                 ModelPersistence.load_model(f'{parent_key}', model)
                 LOG.info(f'Warm started {cell_key} from parent {parent_key}.')
 
@@ -681,10 +684,10 @@ class SearchDelegator:
                 parent_performance = self.population_fitness[parent_key].lang_performance
 
             if warm_start_parent is not None:
-                if os.path.exists(f'./output/models/{warm_start_parent}.tar'):
+                if os.path.exists(f'{OUTPUT}/models/{warm_start_parent}.tar'):
                     ModelPersistence.load_model(f'{warm_start_parent}', model)
                     LOG.info(f'Warm started {cell_key} from parent {warm_start_parent}.')
-                elif os.path.exists(f'./output/models/{warm_start_parent}_lang.tar'):
+                elif os.path.exists(f'{OUTPUT}/models/{warm_start_parent}_lang.tar'):
                     ModelPersistence.load_model(f'{warm_start_parent}_lang', model)
                     LOG.info(f'Warm started {cell_key} from parent {warm_start_parent}.')
                 else:
@@ -804,11 +807,11 @@ class SearchDelegator:
         This method restores the state of the search to the most recent snapshot if it exist.
         :return:
         """
-        if not os.path.exists('./restore') or not self.config('restore_if_possible'):
+        if not os.path.exists(RESTORE) or not self.config('restore_if_possible'):
             LOG.info('Not restoring.')
             return False
 
-        files = glob.glob(f'./restore/snapshot_*_*.pt', recursive=False)
+        files = glob.glob(f'{RESTORE}/snapshot_*_*.pt', recursive=False)
 
         if len(files) == 0:
             LOG.info('Attempted restore, but no files were found to restore from.')
@@ -816,7 +819,7 @@ class SearchDelegator:
 
         versions = self.get_restore_versions(files)
 
-        snapshot = torch.load(f'./restore/snapshot_{versions[0][0]}_{versions[0][1]}.pt')
+        snapshot = torch.load(f'{RESTORE}/snapshot_{versions[0][0]}_{versions[0][1]}.pt')
         LOG.info(f'Restoring snapshot version {versions[0][0]}_{versions[0][1]}.')
         self.generation = snapshot['generation']
         self.fronts = snapshot['fronts']
@@ -864,11 +867,11 @@ class SearchDelegator:
         :return:
         """
 
-        if not os.path.exists('./restore'):
-            os.makedirs('./restore')
+        if not os.path.exists(RESTORE):
+            os.makedirs(RESTORE)
 
-        count = len(glob.glob(f'./restore/snapshot_{self.generation}_*.pt', recursive=True)) + add_count
-        snapshot_path = f'./restore/snapshot_{self.generation}_{count}.pt'
+        count = len(glob.glob(f'{RESTORE}/snapshot_{self.generation}_*.pt', recursive=True)) + add_count
+        snapshot_path = f'{RESTORE}/snapshot_{self.generation}_{count}.pt'
         torch.save({
             'generation': self.generation,
             'fronts': self.fronts,
@@ -885,14 +888,14 @@ class SearchDelegator:
         LOG.debug('Successfully updated snapshot.')
 
         for _arch in self.architectures.keys():
-            if not os.path.exists(f'./restore/architectures/{_arch}.json'):
-                f = open(f'./restore/architectures/{_arch}.json', 'w')
+            if not os.path.exists(f'{restore_path}/architectures/{_arch}.json'):
+                f = open(f'{restore_path}/architectures/{_arch}.json', 'w')
                 json_object = jsonpickle.encode(self.architectures[_arch])
                 f.write(json_object)
                 f.close()
                 LOG.debug(f'Saved architecture {_arch}')
 
-        self.zip_files()
+        # self.zip_files()
 
         return snapshot_path
 
@@ -939,7 +942,7 @@ class SearchDelegator:
         """
 
         if files is None:
-            files = glob.glob(f'./restore/snapshot_{generation_specific if generation_specific else "*"}_*.pt', recursive=False)
+            files = glob.glob(f'{RESTORE}/snapshot_{generation_specific if generation_specific else "*"}_*.pt', recursive=False)
 
             if len(files) == 0:
                 return []
@@ -962,7 +965,7 @@ class SearchDelegator:
         average_blocks = []
         for _arch in self.architectures.keys():
             average_blocks.append(len(self.architectures[_arch].blocks.keys()))
-            architecture_path = f'./restore/architectures/{_arch}.json'
+            architecture_path = f'{RESTORE}/architectures/{_arch}.json'
             if not os.path.exists(architecture_path):
                 f = open(architecture_path, 'w')
                 json_object = jsonpickle.encode(self.architectures[_arch])
@@ -980,7 +983,7 @@ class SearchDelegator:
         :param key: the identifier of the architecture to be restored.
         :return:
         """
-        f = open(f'./restore/architectures/{key}.json')
+        f = open(f'{RESTORE}/architectures/{key}.json')
         json_str = f.read()
         architecture = jsonpickle.decode(json_str)
         f.close()
@@ -1183,7 +1186,7 @@ class SearchDelegator:
             self.clean_architecture(self.architectures[arch])
 
     def clean_up_arch_files(self):
-        files = glob.glob(f'./restore/architectures/*_*.json', recursive=False)
+        files = glob.glob(f'{RESTORE}/architectures/*_*.json', recursive=False)
         for filename in files:
             f = open(filename, 'r')
             json_str = f.read()

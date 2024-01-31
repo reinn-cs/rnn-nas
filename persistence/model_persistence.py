@@ -2,10 +2,14 @@ import os
 
 import torch
 
+from config.env_config import EnvironmentConfig
 from utils.logger import LOG
 
 LOG = LOG.get_instance().get_logger()
 
+
+GOOGLE_DRIVE_EXISTS = os.path.exists('/content/drive/My Drive/msc_run')
+OUTPUT = f'./output' if not GOOGLE_DRIVE_EXISTS else f'/content/drive/My Drive/msc_run/{EnvironmentConfig.get_config("dataset")}/output'
 
 class ModelPersistence:
     """
@@ -31,13 +35,13 @@ class ModelPersistence:
 
     @staticmethod
     def save_model(name, model):
-        if not os.path.exists('./output/models'):
-            os.makedirs('./output/models')
-        torch.save(model.state_dict(), f'./output/models/{name}.tar')
+        if not os.path.exists(f'{OUTPUT}/models'):
+            os.makedirs(f'{OUTPUT}/models')
+        torch.save(model.state_dict(), f'{OUTPUT}/models/{name}.tar')
 
     @staticmethod
     def load_model(name, model):
-        if os.path.exists(f'./output/models/{name}.tar'):
-            model.load_state_dict(torch.load(f'./output/models/{name}.tar'), strict=False)
+        if os.path.exists(f'{OUTPUT}/models/{name}.tar'):
+            model.load_state_dict(torch.load(f'{OUTPUT}/models/{name}.tar'), strict=False)
         else:
             LOG.info(f'ERROR :: model {name} was not saved.')

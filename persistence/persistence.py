@@ -13,8 +13,11 @@ from ops.nas_controller import NASController
 from utils.logger import LOG
 
 LOG = LOG.get_instance().get_logger()
-CSV_PATH = './output/persistence/tmp.csv'
+GOOGLE_DRIVE_EXISTS = os.path.exists('/content/drive/My Drive/msc_run')
+RESTORE = f'./restore' if not GOOGLE_DRIVE_EXISTS else f'/content/drive/My Drive/msc_run/{EnvironmentConfig.get_config("dataset")}/restore'
+OUTPUT = f'./output' if not GOOGLE_DRIVE_EXISTS else f'/content/drive/My Drive/msc_run/{EnvironmentConfig.get_config("dataset")}/output'
 
+CSV_PATH = f'{OUTPUT}/persistence/tmp.csv'
 
 class Persistence:
     """
@@ -221,8 +224,8 @@ class Persistence:
         LOG.info(f'Performance for {entry["model_id"]} persisted.')
 
     def save_to_csv(self, entry):
-        if not os.path.exists('./output/persistence'):
-            os.mkdir('./output/persistence')
+        if not os.path.exists(f'{OUTPUT}/persistence'):
+            os.mkdir(f'{OUTPUT}/persistence')
 
         if os.path.exists(CSV_PATH):
             df = pd.read_csv(CSV_PATH)
@@ -385,11 +388,11 @@ class Persistence:
 
     @staticmethod
     def persist_architecture(architecture):
-        if not os.path.exists('./restore/architectures'):
-            os.mkdir('./restore/architectures')
+        if not os.path.exists(f'{RESTORE}/architectures'):
+            os.mkdir(f'{RESTORE}/architectures')
 
-        if not os.path.exists(f'./restore/architectures/{architecture.identifier}.json'):
-            f = open(f'./restore/architectures/{architecture.identifier}.json', 'w')
+        if not os.path.exists(f'{RESTORE}/architectures/{architecture.identifier}.json'):
+            f = open(f'{RESTORE}/architectures/{architecture.identifier}.json', 'w')
             json_object = jsonpickle.encode(architecture)
             f.write(json_object)
             f.close()

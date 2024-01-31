@@ -52,9 +52,13 @@ class LOG:
 
         print(f'Creating logger {format_date}')
 
-        if not os.path.exists('./output'):
-            os.makedirs('./output')
-        fh = logging.FileHandler(f'./output/log-{format_date}.log')
+        output_dir = './output'
+        if os.path.exists('/content/drive/My Drive/msc_run'):
+            output_dir = f'/content/drive/My Drive/msc_run/{EnvironmentConfig.get_config("dataset")}/output'
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        fh = logging.FileHandler(f'{output_dir}/log-{format_date}.log')
         fh.setFormatter(formatter)
         fh.setLevel(level)
 

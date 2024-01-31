@@ -15,6 +15,9 @@ LOG = LOG.get_instance().get_logger()
 
 REMOVE_TRANSFORMATIONS = ["remove_unit", "remove_connection"]
 
+GOOGLE_DRIVE_EXISTS = os.path.exists('/content/drive/My Drive/msc_run')
+OUTPUT = f'./output' if not GOOGLE_DRIVE_EXISTS else f'/content/drive/My Drive/msc_run/{EnvironmentConfig.get_config("dataset")}/output'
+
 """
 This class is responsible for the network morphism (performing network transformations).
 """
@@ -824,7 +827,7 @@ class BlockTransformation:
             self.persist_transformation_to_file(transformation)
             list_of_transformations.transformations.append(key)
 
-        f = open(f'./output/transformations/list_of_transformations_{identifier}.json', 'w')
+        f = open(f'{OUTPUT}/transformations/list_of_transformations_{identifier}.json', 'w')
         json_object = jsonpickle.encode(list_of_transformations)
         f.write(json_object)
         f.close()
@@ -836,7 +839,7 @@ class BlockTransformation:
             self.persist_transformation_to_file(transformation)
 
     def persist_transformation_to_file(self, transformation):
-        file_name_path = f'./output/transformations/{transformation.hash}.json'
+        file_name_path = f'{OUTPUT}/transformations/{transformation.hash}.json'
         if os.path.exists(file_name_path):
             print('Attempting to persist a transformation that has already been performed.')
 
@@ -846,14 +849,14 @@ class BlockTransformation:
         f.close()
 
     def load_transformation_from_file(self, identifier):
-        f = open(f'./output/transformations/{identifier}.json')
+        f = open(f'{OUTPUT}/transformations/{identifier}.json')
         json_str = f.read()
         transformation = jsonpickle.decode(json_str)
         f.close()
         return transformation
 
     def read_transformations_from_file(self):
-        f = open('./output/transformations/list_of_transformations.json')
+        f = open(f'{OUTPUT}/transformations/list_of_transformations.json')
         json_str = f.read()
         list_of_transformations = jsonpickle.decode(json_str)
         f.close()
