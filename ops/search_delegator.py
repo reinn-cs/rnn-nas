@@ -950,6 +950,9 @@ class SearchDelegator:
         versions = []
         for file in files:
             first_pos = file.find('_')
+            if 'msc_run' in file:
+                msc_v = file.find('_')
+                first_pos = file.find('_', msc_v + 1)
             second_pos = file.find('_', first_pos + 1)
             second_end = file.find('.', second_pos)
 
