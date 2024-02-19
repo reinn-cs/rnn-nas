@@ -137,7 +137,7 @@ if __name__ == '__main__':
     args.itr = 1
     args.train_epochs = 30
     args.patience = 10
-    args.rnn_type = 'gru'
+    args.rnn_type = 'rnn'
     args.dec_way = 'pmf'
     args.channel_id = 1
     args.batch_size = 16
