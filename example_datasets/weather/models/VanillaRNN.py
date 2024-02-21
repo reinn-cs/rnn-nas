@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+from ops.block_state_builder import BlockStateBuilder
+
 is_cuda = torch.cuda.is_available()
 
 # If we have a GPU available, we'll set our device to GPU. We'll use this device variable later in our code.
@@ -30,8 +32,9 @@ class Model(nn.Module):
             # self.rnn = nn.RNN(input_size=self.enc_in, hidden_size=self.d_model, num_layers=1, bias=True,
             #                   batch_first=True, bidirectional=False)
 
-            self.rnn = nn.RNNCell(input_size=self.enc_in, hidden_size=self.d_model, bias=True)
-
+            # self.rnn = nn.RNNCell(input_size=self.enc_in, hidden_size=self.d_model, bias=True)
+            builder = BlockStateBuilder('custom')
+            self.rnn = builder.build_new_state_from_architecture(builder.get_basic_architecture(), self.enc_in, self.d_model)
         elif self.rnn_type == "gru":
             self.rnn = nn.GRU(input_size=self.enc_in, hidden_size=self.d_model, num_layers=1, bias=True,
                               batch_first=True, bidirectional=False)
@@ -55,7 +58,7 @@ class Model(nn.Module):
             hn = torch.zeros((x.size()[0], self.d_model)).to(device)
             for input_t in x.split(1, dim=1):
                 # x_inp = input_t[0].squeeze()
-                hn = self.rnn(input_t.squeeze(), hn) # b,s,d  1,b,d
+                hn = self.rnn(input_t.squeeze(), model_states=(hn, None), weather=True) # b,s,d  1,b,d
 
         # decoding
         y = []
@@ -70,7 +73,7 @@ class Model(nn.Module):
                 yy = self.predict(hn)    # 1,b,c
                 # yy = yy.permute(1,0,2) # b,1,c
                 y.append(yy)
-                hn = self.rnn(yy, hn)
+                hn = self.rnn(yy, model_states=(hn, None), weather=True)
         y = torch.stack(y, dim=1).squeeze(2) # bc,s,1
 
         return y

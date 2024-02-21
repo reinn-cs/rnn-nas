@@ -4,6 +4,8 @@ import torch
 from example_datasets.weather.exp.exp_main import Exp_Main
 import random
 import numpy as np
+from utils.logger import LOG
+LOG = LOG.get_instance()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Model family for Time Series Forecasting')

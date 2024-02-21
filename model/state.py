@@ -71,7 +71,7 @@ class State(nn.Module):
         self.blocks[block.identifier] = block
 
     def forward(self, input, sine=False, model_states=None, ptb=False, cfl=False, char_nn=False, sentiment=False,
-                capture_gate_outputs=False):
+                capture_gate_outputs=False, weather=False):
 
         if sine:
             if model_states is None:
@@ -189,29 +189,28 @@ class State(nn.Module):
                 ActivationController.update_input()
 
             return torch.stack(outputs['output'], dim=0), (outputs['h_next'], outputs['c_next'])
-        elif sentiment:
+        elif sentiment or weather:
             (h_t, c_t) = model_states
 
             self.blocks['x'].output = input
             self.blocks['h'].output = h_t
-            self.blocks['c'].output = c_t
+            if c_t is not None:
+                self.blocks['c'].output = c_t
+
             outputs = {
                 'output': []
             }
 
-            ActivationController.reset_input()
             self.block_outputs = {}
-
             for out_key in self.output_blocks:
                 outputs[out_key] = self.blocks[out_key].get_output(self)
 
             self.blocks['h'].output = outputs['h_next']
-            self.blocks['c'].output = outputs['c_next']
-
-            outputs['output'].append(outputs['h_next'].clone())
-            ActivationController.update_input()
-
-            return outputs['h_next'], outputs['c_next']
+            if 'c_next' in outputs.keys() and c_t is not None:
+                self.blocks['c'].output = outputs['c_next']
+                return outputs['h_next'], outputs['c_next']
+            else:
+                return outputs['h_next']
         else:
             raise Exception('Unknown state.')
 
